@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
-import { Search, ArrowUpDown, Eye, EyeOff, X, Settings, Plus, Loader2, Trash2 } from "lucide-react";
+import { Search, ArrowUpDown, Eye, EyeOff, X, Settings, Plus, Loader2 } from "lucide-react";
 import Cookies from "js-cookie";
 
 interface Restaurant {
@@ -27,7 +27,6 @@ export default function RestaurantManager({ onUpdate }: Props) {
   const [newUrl, setNewUrl] = useState("");
   const [isAdding, setIsAdding] = useState(false);
   const [addStatus, setAddStatus] = useState<{ type: 'success' | 'error' | null, msg: string }>({ type: null, msg: '' });
-  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   // 1. Načtení dat (Všech restaurací z DB + Cookies)
   const loadData = async () => {
@@ -86,26 +85,6 @@ export default function RestaurantManager({ onUpdate }: Props) {
       setAddStatus({ type: 'error', msg: err.message });
     } finally {
       setIsAdding(false);
-    }
-  };
-
-  // Funkce: Smazat restauraci
-  const handleDelete = async (id: string, e: React.MouseEvent) => {
-    e.stopPropagation(); // Aby se neklikl řádek (přepnutí oka)
-    if (!confirm("Opravdu smazat tuto restauraci?")) return;
-
-    setDeletingId(id);
-    try {
-      await fetch("/api/restaurants/delete", {
-        method: "DELETE",
-        body: JSON.stringify({ id }),
-      });
-      loadData();
-      onUpdate();
-    } catch (e) {
-      alert("Chyba při mazání");
-    } finally {
-      setDeletingId(null);
     }
   };
 
@@ -202,6 +181,16 @@ export default function RestaurantManager({ onUpdate }: Props) {
                     onChange={(e) => setSearch(e.target.value)}
                   />
                 </div>
+
+                <button
+                  type="button"
+                  onClick={() => setSortOrder((prev) => (prev === "newest" ? "alphabet" : "newest"))}
+                  className="flex items-center gap-2 px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white hover:bg-gray-100 text-gray-700 transition-colors"
+                  title="Přepnout řazení"
+                >
+                  <ArrowUpDown size={16} />
+                  {sortOrder === "newest" ? "Nejnovější" : "A–Z"}
+                </button>
               </div>
 
               {/* 3. SEKCE: SEZNAM */}
@@ -231,24 +220,14 @@ export default function RestaurantManager({ onUpdate }: Props) {
                         </div>
                         
                         <div className="flex items-center gap-2">
-                            {/* Tlačítko Smazat (viditelné jen na hover nebo mobilu) */}
                             <button
-                                onClick={(e) => handleDelete(rest.id, e)}
-                                className="p-2 text-gray-300 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
-                                title="Smazat z databáze"
-                            >
-                                {deletingId === rest.id ? <Loader2 size={16} className="animate-spin"/> : <Trash2 size={16} />}
-                            </button>
-
-                            {/* Tlačítko Oko */}
-                            <button
-                            className={`p-2 rounded-full transition-all flex-shrink-0 ${
+                              className={`p-2 rounded-full transition-all flex-shrink-0 ${
                                 isSelected 
                                 ? "bg-blue-100 text-blue-700" 
                                 : "bg-gray-100 text-gray-400 hover:bg-gray-200"
-                            }`}
+                              }`}
                             >
-                            {isSelected ? <Eye size={18} /> : <EyeOff size={18} />}
+                              {isSelected ? <Eye size={18} /> : <EyeOff size={18} />}
                             </button>
                         </div>
                       </div>
