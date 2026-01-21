@@ -113,6 +113,21 @@ export default function Home() {
           </div>
         )}
       </div>
+
+      {/* Zapatí */}
+      <footer className="mt-12 mb-4 text-center text-gray-500 text-sm">
+        <p>
+          Developt by MaMl pro nejlepší společnost na světě {" "}
+          <a
+            href="https://ceskysoftware.cz/cs/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-600 hover:text-blue-800 underline"
+          >
+           Český software s.r.o. 
+          </a>
+        </p>
+      </footer>
     </main>
   );
 }
