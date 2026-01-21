@@ -112,9 +112,6 @@ export default function MenuCard({ restaurantName, menuData, fullUrl }: Props) {
                     Dnešní nabídka ({todayMenu.den})
                 </h4>
                 {renderDishes(todayMenu)}
-                <div className="text-center mt-4 pt-3 border-t border-gray-50">
-                    <span className="text-xs text-blue-500 font-medium hover:underline">Zobrazit celý týden</span>
-                </div>
             </div>
         )}
 
