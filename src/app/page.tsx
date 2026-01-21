@@ -6,6 +6,7 @@ import Cookies from "js-cookie";
 import MenuCard from "@/components/MenuCard";
 import RestaurantManager from "@/components/RestaurantManager";
 import { Utensils, RefreshCw, Info } from "lucide-react";
+import Image from "next/image";
 
 export default function Home() {
   const [menus, setMenus] = useState<any[]>([]);
@@ -56,8 +57,17 @@ export default function Home() {
     <main className="min-h-screen bg-gray-50 p-4 md:p-8">
       {/* Hlavička */}
       <div className="max-w-4xl mx-auto text-center mb-8 mt-4">
-        <h1 className="text-4xl font-black tracking-tighter text-gray-900 mb-2 flex items-center justify-center gap-3">
-          <Utensils className="w-8 h-8" />
+        <div className="flex items-center justify-center gap-4 mb-3">
+          <Image 
+            src="/eatme_logo.png" 
+            alt="Eat Me Logo" 
+            width={120} 
+            height={120}
+            className="w-24 h-24 md:w-32 md:h-32"
+            priority
+          />
+        </div>
+        <h1 className="text-4xl font-black tracking-tighter text-gray-900 mb-2">
           eat_me
         </h1>
         <p className="text-gray-500">Tvůj osobní přehled poledních menu</p>
