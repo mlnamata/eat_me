@@ -61,9 +61,9 @@ export default function Home() {
           <Image 
             src="/eatme_logo.png" 
             alt="Eat Me Logo" 
-            width={120} 
-            height={120}
-            className="w-24 h-24 md:w-32 md:h-32"
+            width={200} 
+            height={200}
+            className="w-40 h-40 md:w-52 md:h-52 object-contain"
             priority
           />
         </div>

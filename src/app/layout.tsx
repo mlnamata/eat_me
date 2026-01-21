@@ -18,6 +18,18 @@ export const metadata: Metadata = {
   icons: {
     icon: "/eatme_logo.png",
   },
+  openGraph: {
+    title: "Eat Me - Denní menu restaurací",
+    description: "AI-powered agregátor denních menu z vybraných restaurací",
+    images: ["/eatme_logo.png"],
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Eat Me - Denní menu restaurací",
+    description: "AI-powered agregátor denních menu z vybraných restaurací",
+    images: ["/eatme_logo.png"],
+  },
 };
 
 export default function RootLayout({
