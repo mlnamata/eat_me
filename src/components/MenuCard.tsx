@@ -26,6 +26,7 @@ interface Props {
 export default function MenuCard({ restaurantName, menuData, fullUrl }: Props) {
   const [isOpen, setIsOpen] = useState(false);
   const [todayMenu, setTodayMenu] = useState<DailyMenu | null>(null);
+  const [selectedDayIndex, setSelectedDayIndex] = useState<number>(0);
   
   // Zjistíme dnešní den hned při startu
   useEffect(() => {
@@ -34,10 +35,13 @@ export default function MenuCard({ restaurantName, menuData, fullUrl }: Props) {
 
     if (menuData?.poledni_nabidka) {
       // Najdeme menu, které má v názvu dnešní den (ignorujeme velikost písmen)
-      const found = menuData.poledni_nabidka.find((d) => 
+      const foundIndex = menuData.poledni_nabidka.findIndex((d) => 
         d.den && d.den.toLowerCase().includes(todayName.toLowerCase())
       );
-      setTodayMenu(found || null);
+      if (foundIndex !== -1) {
+        setTodayMenu(menuData.poledni_nabidka[foundIndex]);
+        setSelectedDayIndex(foundIndex);
+      }
     }
   }, [menuData]);
 
@@ -109,13 +113,42 @@ export default function MenuCard({ restaurantName, menuData, fullUrl }: Props) {
       {/* OBSAH */}
       <div className="flex-1 bg-white">
         
-        {/* VARIANTA A: Zavřeno = Ukazujeme JEN DNEŠEK (pokud existuje) */}
-        {!isOpen && todayMenu && (
+        {/* VARIANTA A: Zavřeno = Ukazujeme VYBRANÝ DEN s navigací */}
+        {!isOpen && menuData.poledni_nabidka && menuData.poledni_nabidka.length > 0 && (
             <div className="p-4 animate-in fade-in">
+                {/* Navigace dnů */}
+                {menuData.poledni_nabidka.length > 1 && (
+                  <div className="flex gap-1 mb-4 overflow-x-auto pb-2 scrollbar-hide">
+                    {menuData.poledni_nabidka.map((day, idx) => {
+                      const isToday = todayMenu && day.den === todayMenu.den;
+                      const isSelected = idx === selectedDayIndex;
+                      return (
+                        <button
+                          key={idx}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedDayIndex(idx);
+                          }}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all ${
+                            isSelected
+                              ? "bg-blue-600 text-white shadow-sm"
+                              : isToday
+                              ? "bg-green-50 text-green-700 hover:bg-green-100"
+                              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                          }`}
+                        >
+                          {day.den.split(' ')[0]} {isToday && "•"}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+                
                 <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">
-                    Dnešní nabídka ({todayMenu.den})
+                    {menuData.poledni_nabidka[selectedDayIndex]?.den}
+                    {todayMenu && menuData.poledni_nabidka[selectedDayIndex]?.den === todayMenu.den && " (Dnes)"}
                 </h4>
-                {renderDishes(todayMenu)}
+                {menuData.poledni_nabidka[selectedDayIndex] && renderDishes(menuData.poledni_nabidka[selectedDayIndex])}
             </div>
         )}
 
