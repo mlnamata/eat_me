@@ -66,8 +66,81 @@ async function fetchPageContent(url: string): Promise<string | null> {
   }
 }
 
+// Pomocný rychlý fetch HTML (bez Jina) pro strukturovaný parsing
+async function fetchPageHtml(url: string): Promise<string | null> {
+  try {
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+      },
+      next: { revalidate: 0 }
+    });
+    if (!response.ok) return null;
+    return await response.text();
+  } catch {
+    return null;
+  }
+}
+
+// Pokus o strukturovaný parsing pro weby s jasným markupem (např. usalzmannu)
+function tryParseStructuredMenu(html: string) {
+  const $ = cheerio.load(html);
+  const hasDaily = $('.daily-menu').length > 0;
+  if (!hasDaily) return null;
+
+  // Seznam dnů z tabů (indexované podle obsahu)
+  const dayLabels: string[] = [];
+  $('.daily-menu-tab__list .daily-menu-tab__item .daily-menu-tab__day').each((_, el) => {
+    const day = $(el).text().trim();
+    if (day) dayLabels.push(day);
+  });
+
+  const days: any[] = [];
+  $('#daily-menu-content-list .daily-menu-content__content').each((i, content) => {
+    const dayName = dayLabels[i] || `Den ${i + 1}`;
+    const soups: string[] = [];
+    const mains: any[] = [];
+
+    $(content).find('.daily-menu-content__item').each((_, item) => {
+      const section = $(item).find('.daily-menu-content__heading').text().trim().toLowerCase();
+      const rows = $(item).find('table tbody tr');
+      rows.each((__, tr) => {
+        const tds = $(tr).find('td');
+        if (tds.length >= 2) {
+          const name = $(tds[1]).text().replace(/\s+/g, ' ').trim();
+          const priceText = tds.length >= 3 ? $(tds[2]).text() : '';
+          const priceMatch = priceText.replace(/\u00a0/g, ' ').match(/(\d+)[\s]*Kč/i);
+          const price = priceMatch ? parseInt(priceMatch[1], 10) : 0;
+
+          if (section.includes('polév') || section.includes('polev')) {
+            if (name) soups.push(name);
+          } else {
+            if (name) mains.push({ nazev: name, cena_bez_polevky: price || 0 });
+          }
+        }
+      });
+    });
+
+    days.push({ den: dayName, polevky: soups, hlavni_chody: mains });
+  });
+
+  if (days.length === 0) return null;
+  return { poledni_nabidka: days };
+}
+
 // HLAVNÍ FUNKCE
 export async function scrapeMenuWithAI(url: string) {
+  // 0) Zkusíme rychlý strukturovaný parsing, pokud stránky mají jasný markup
+  const html = await fetchPageHtml(url);
+  if (html) {
+    const structured = tryParseStructuredMenu(html);
+    if (structured && structured.poledni_nabidka?.length) {
+      console.log(`✅ [Scraper] Strukturovaný parsing úspěšný (bez AI). Dní: ${structured.poledni_nabidka.length}`);
+      return structured;
+    }
+  }
+
   const rawText = await fetchPageContent(url);
 
   if (!rawText || rawText.length < 100) {
