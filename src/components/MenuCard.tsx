@@ -53,16 +53,20 @@ export default function MenuCard({ restaurantName, menuData, fullUrl }: Props) {
       
       {/* Hlavní chody */}
       {day.hlavni_chody?.map((jidlo, idx) => (
-        <div key={idx} className="flex justify-between items-start text-sm group">
-          <div className="pr-2">
-            <span className="font-medium text-gray-900 block">
-              {jidlo.cislo ? `${jidlo.cislo}. ` : ""}
-              {jidlo.nazev}
-            </span>
-            {jidlo.popis && <span className="text-gray-500 text-xs">{jidlo.popis}</span>}
-          </div>
-          <div className="whitespace-nowrap font-bold text-gray-700 bg-gray-50 px-2 py-1 rounded">
-            {jidlo.cena_bez_polevky || jidlo.cena_s_polevkou ? `${jidlo.cena_bez_polevky || jidlo.cena_s_polevkou} Kč` : ""}
+        <div key={idx} className="border-b border-gray-100 pb-3 last:border-0 group">
+          <div className="flex justify-between items-start gap-3">
+            <div className="flex-1 min-w-0">
+              <span className="font-semibold text-gray-900 block break-words">
+                {jidlo.cislo ? `${jidlo.cislo}. ` : ""}
+                {jidlo.nazev}
+              </span>
+              {jidlo.popis && (
+                <span className="text-gray-600 text-xs block mt-1 line-clamp-2">{jidlo.popis}</span>
+              )}
+            </div>
+            <div className="whitespace-nowrap font-bold text-amber-600 bg-amber-50 px-2.5 py-1 rounded-lg text-sm flex-shrink-0">
+              {jidlo.cena_bez_polevky || jidlo.cena_s_polevkou ? `${jidlo.cena_bez_polevky || jidlo.cena_s_polevkou} Kč` : "—"}
+            </div>
           </div>
         </div>
       ))}

@@ -138,7 +138,26 @@ function tryParseStructuredMenu(html: string) {
 // Heuristika: menicka.cz iframe (např. Slunečnice)
 async function extractMenickaIframeText(baseUrl: string, html: string): Promise<string | null> {
   const $ = load(html);
-  const iframeSrc = $('iframe[src*="menicka.cz"]').attr('src');
+  
+  // Zkusit classickou iframe s menicka.cz
+  let iframeSrc = $('iframe[src*="menicka.cz"]').attr('src');
+  
+  // Pokud ne, zkusit data-src (lazy loading)
+  if (!iframeSrc) {
+    iframeSrc = $('iframe[data-src*="menicka.cz"]').attr('data-src');
+  }
+  
+  // Pokud ne, zkusit všechny iframy a hledat v src
+  if (!iframeSrc) {
+    $('iframe').each((_, el) => {
+      const src = $(el).attr('src') || '';
+      if (src.includes('menicka.cz')) {
+        iframeSrc = src;
+        return false; // break
+      }
+    });
+  }
+  
   if (!iframeSrc) return null;
   const abs = toAbsoluteUrl(baseUrl, iframeSrc);
   console.log(`🔎 [Scraper] Nalezen menicka.cz iframe: ${abs}`);
