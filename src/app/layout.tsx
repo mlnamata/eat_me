@@ -18,6 +18,8 @@ export const metadata: Metadata = {
   icons: {
     icon: "/eatme_logo.png",
   },
+  // Nastavení absolutního základu URL pro správné OG/Twitter obrázky
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"),
   openGraph: {
     title: "Eat Me - Denní menu restaurací",
     description: "AI-powered agregátor denních menu z vybraných restaurací",

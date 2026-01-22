@@ -48,7 +48,7 @@ export default function AddRestaurant({ onAdded }: AddRestaurantProps) {
       <form onSubmit={handleSubmit} className="space-y-3">
         <input
           type="url"
-          placeholder="https://example.com/menu"
+          placeholder="example.com/menu"
           value={url}
           onChange={(e) => setUrl(e.target.value)}
           disabled={loading}
@@ -56,7 +56,7 @@ export default function AddRestaurant({ onAdded }: AddRestaurantProps) {
         />
         <button
           type="submit"
-          disabled={loading || !url}
+          disabled={loading || !url.includes(".")}
           className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-400 transition"
         >
           <Plus size={16} />
