@@ -28,18 +28,13 @@ export default function Home() {
       `)
       .order("created_at", { ascending: false });
 
-    // Pokud nemáme žádné oblíbené, stáhni vše (nebo nic, záleží na logice, dáme vše pro start)
-    // Ale správná logika Dashboardu je: Pokud mám cookies, ukaž jen ty. 
+    // Pokud uživatel něco vybral, filtrujeme jen jeho restaurace, jinak ukážeme vše
     if (myIds.length > 0) {
       query = query.in("restaurant_id", myIds);
-    } else {
-        // Fallback: Když uživatel nemá vybráno nic, nic nezobrazíme a vyzveme ho k výběru
-        setMenus([]);
-        setLoading(false);
-        return;
     }
 
-    const { data, error } = await query;
+    // Explicitně neomezujeme počet vrácených záznamů, aby se zobrazily všechny karty
+    const { data, error } = await query.limit(1000);
 
     if (error) {
       console.error("Chyba DB:", error);
