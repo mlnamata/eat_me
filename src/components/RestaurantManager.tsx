@@ -1,5 +1,6 @@
 "use client";
 
+// Komponenta pro spravu restauraci - pridavani, mazani, vyber
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { Search, ArrowUpDown, Eye, EyeOff, X, Settings, Plus, Loader2 } from "lucide-react";
@@ -17,25 +18,26 @@ interface Props {
 }
 
 export default function RestaurantManager({ onUpdate }: Props) {
+  // Viditelnost dialoku a seznamy
   const [isOpen, setIsOpen] = useState(false);
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [search, setSearch] = useState("");
   const [sortOrder, setSortOrder] = useState<"newest" | "alphabet">("newest");
   const [myList, setMyList] = useState<string[]>([]);
   
-  // Stavy pro přidávání nové restaurace
+  // Stavy pro pridavani nove restaurace
   const [newUrl, setNewUrl] = useState("");
   const [isAdding, setIsAdding] = useState(false);
   const [addStatus, setAddStatus] = useState<{ type: 'success' | 'error' | null, msg: string }>({ type: null, msg: '' });
 
-  // 1. Načtení dat (Všech restaurací z DB + Cookies)
+  // Nacteni dat - vsech restauraci z DB a cookies
   const loadData = async () => {
-    // A) Cookies
+    // Nacteni ID z cookies
     const cookieData = Cookies.get("my_restaurants");
     const savedIds = cookieData ? JSON.parse(cookieData) : [];
     setMyList(savedIds);
 
-    // B) Databáze
+    // Nacteni z databaze
     const { data } = await supabase
       .from("restaurants")
       .select("*")
@@ -50,7 +52,7 @@ export default function RestaurantManager({ onUpdate }: Props) {
     }
   }, [isOpen]);
 
-  // Funkce: Přidat restauraci
+  // Pridani nove restaurace
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newUrl.trim()) return;
@@ -69,11 +71,11 @@ export default function RestaurantManager({ onUpdate }: Props) {
 
       if (!res.ok) throw new Error(data.error || 'Chyba serveru');
 
-      setAddStatus({ type: 'success', msg: 'Restaurace přidána!' });
+      setAddStatus({ type: 'success', msg: 'Restaurace pridana!' });
       setNewUrl("");
-      loadData(); // Obnovit seznam
+      loadData(); // Obnoveni seznamu
       
-      // Automaticky přidat do "mých" sledovaných
+      // Automaticke pridani do "meho" seznamu sledovanych
       if (data.restaurantId) {
          const newList = [...myList, data.restaurantId];
          setMyList(newList);
@@ -88,18 +90,18 @@ export default function RestaurantManager({ onUpdate }: Props) {
     }
   };
 
-  // 2. Logika přepínání (Přidat/Odebrat z mých)
+  // Prepinani restauraci - pridat/odebrat z meho seznamu
   const toggleRestaurant = (id: string) => {
     let newList;
     if (myList.includes(id)) {
       newList = myList.filter((item) => item !== id); // Odebrat
     } else {
-      newList = [...myList, id]; // Přidat
+      newList = [...myList, id]; // Pridat
     }
     
     setMyList(newList);
     Cookies.set("my_restaurants", JSON.stringify(newList), { expires: 365 });
-    onUpdate(); // Řekneme hlavní stránce, ať se obnoví
+    onUpdate(); // Obnoveni na hlavni strance
   };
 
   const filteredRestaurants = restaurants
@@ -128,13 +130,13 @@ export default function RestaurantManager({ onUpdate }: Props) {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[85vh]">
             
-            {/* Hlavička */}
+            {/* Hlavicka */}
             <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-              <h3 className="font-bold text-lg text-gray-900">Správa restaurací</h3>
+              <h3 className="font-bold text-lg text-gray-900">Sprava restauraci</h3>
               <button 
                 onClick={() => setIsOpen(false)} 
                 className="p-2 hover:bg-gray-200 rounded-full"
-                title="Zavřít"
+                title="Zavrit"
               >
                 <X size={20} className="text-gray-500" />
               </button>
@@ -142,7 +144,7 @@ export default function RestaurantManager({ onUpdate }: Props) {
 
             <div className="p-4 space-y-4 overflow-y-auto">
               
-              {/* 1. SEKCE: PŘIDÁNÍ NOVÉ */}
+              {/* Sekce 1: Pridani nove restaurace */}
               <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
                 <form onSubmit={handleAdd} className="flex gap-2">
                     <input 
@@ -159,7 +161,7 @@ export default function RestaurantManager({ onUpdate }: Props) {
                         className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-70 flex items-center gap-2 whitespace-nowrap"
                     >
                         {isAdding ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
-                        Přidat
+                        Pridat
                     </button>
                 </form>
                 {addStatus.msg && (
@@ -169,7 +171,7 @@ export default function RestaurantManager({ onUpdate }: Props) {
                 )}
               </div>
 
-              {/* 2. SEKCE: FILTRY */}
+              {/* Sekce 2: Filtry a razeni */}
               <div className="flex gap-2">
                 <div className="relative flex-1">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
@@ -186,18 +188,18 @@ export default function RestaurantManager({ onUpdate }: Props) {
                   type="button"
                   onClick={() => setSortOrder((prev) => (prev === "newest" ? "alphabet" : "newest"))}
                   className="flex items-center gap-2 px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white hover:bg-gray-100 text-gray-700 transition-colors"
-                  title="Přepnout řazení"
+                  title="Prepnout razeni"
                 >
                   <ArrowUpDown size={16} />
-                  {sortOrder === "newest" ? "Nejnovější" : "A–Z"}
+                  {sortOrder === "newest" ? "Nejnovejsi" : "A–Z"}
                 </button>
               </div>
 
-              {/* 3. SEKCE: SEZNAM */}
+              {/* Sekce 3: Seznam restauraci */}
               <div className="space-y-1 min-h-[200px]">
                 {filteredRestaurants.length === 0 ? (
                   <div className="text-center py-8 text-gray-500">
-                    Žádná restaurace nenalezena.
+                    Zadna restaurace nenalezena.
                   </div>
                 ) : (
                   filteredRestaurants.map((rest) => {

@@ -1,5 +1,6 @@
 "use client";
 
+// Komponenta pro zadavani URL nove restaurace
 import { useState } from "react";
 import { Loader2, Plus } from "lucide-react";
 
@@ -8,6 +9,7 @@ interface AddRestaurantInputProps {
 }
 
 export function AddRestaurantInput({ onRestaurantAdded }: AddRestaurantInputProps) {
+  // Stavy pro URL, loading, chyby a uspech
   const [url, setUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -29,7 +31,7 @@ export function AddRestaurantInput({ onRestaurantAdded }: AddRestaurantInputProp
       const data = await response.json();
 
       if (!data.success) {
-        setError(data.error || "Failed to add restaurant");
+        setError(data.error || "Chyba pri pridani restaurace");
         return;
       }
 
@@ -37,10 +39,10 @@ export function AddRestaurantInput({ onRestaurantAdded }: AddRestaurantInputProp
       setUrl("");
       onRestaurantAdded?.();
 
-      // Auto-clear success message after 3 seconds
+      // Automaticke skrytí zprávy po 3 sekundach
       setTimeout(() => setSuccess(false), 3000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred");
+      setError(err instanceof Error ? err.message : "Doslo k chybe");
     } finally {
       setLoading(false);
     }
@@ -69,7 +71,7 @@ export function AddRestaurantInput({ onRestaurantAdded }: AddRestaurantInputProp
             ) : (
               <Plus className="w-4 h-4" />
             )}
-            Add
+            Pridat
           </button>
         </div>
 
@@ -81,7 +83,7 @@ export function AddRestaurantInput({ onRestaurantAdded }: AddRestaurantInputProp
 
         {success && (
           <div className="p-3 bg-green-50 text-green-700 rounded-lg text-sm">
-            Restaurant added successfully!
+            Restaurace byla uspesne pridana!
           </div>
         )}
       </div>

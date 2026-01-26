@@ -1,5 +1,6 @@
 "use client";
 
+// Komponenta pro spravovani a zobrazeni menu na klientske strane
 import { useEffect, useState } from "react";
 import Cookies from "js-cookie";
 import { AddRestaurantInput } from "./AddRestaurantInput";
@@ -10,12 +11,13 @@ import { DailyMenu } from "@/types/database";
 const RESTAURANTS_COOKIE_KEY = "my_restaurants";
 
 export function HomeClient() {
+  // Seznamy a stavy
   const [restaurantIds, setRestaurantIds] = useState<string[]>([]);
   const [menus, setMenus] = useState<DailyMenu[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Load restaurant IDs from cookies
+  // Nacteni ID restauraci z cookies pri prvnim nacitani
   useEffect(() => {
     const stored = Cookies.get(RESTAURANTS_COOKIE_KEY);
     if (stored) {
@@ -28,7 +30,7 @@ export function HomeClient() {
     setLoading(false);
   }, []);
 
-  // Fetch menus when restaurant IDs change
+  // Nacteni menu kdyz se zmeni ID restauraci
   useEffect(() => {
     if (restaurantIds.length === 0) {
       setMenus([]);
@@ -46,7 +48,7 @@ export function HomeClient() {
         const data = await response.json();
 
         if (!data.success) {
-          setError(data.error || "Failed to fetch menus");
+          setError(data.error || "Chyba pri nacteni menu");
           return;
         }
 

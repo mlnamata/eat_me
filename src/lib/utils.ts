@@ -1,35 +1,35 @@
-// Utility functions for working with restaurants and menus
+// Pomocne funkce pro praci s restauracemi a menu
 
 /**
- * Extract domain from a full URL
- * @param url - Full URL (e.g., "https://sladovnicka.cz/denni-menu")
- * @returns Domain (e.g., "sladovnicka.cz")
+ * Ziskani domeny z celeho URL
+ * @param url - Cele URL (napr. "https://sladovnicka.cz/denni-menu")
+ * @returns Domena (napr. "sladovnicka.cz")
  */
 export function extractDomain(url: string): string {
   try {
     const urlObj = new URL(url);
     return urlObj.hostname;
   } catch {
-    throw new Error("Invalid URL");
+    throw new Error("Neplatne URL");
   }
 }
 
 /**
- * Get the Monday of the current week
- * @returns ISO date string (YYYY-MM-DD)
+ * Ziskani pondelí aktualni tydne
+ * @returns ISO datumovy retezec (YYYY-MM-DD)
  */
 export function getWeekStart(): string {
   const today = new Date();
   const day = today.getDay();
-  const diff = today.getDate() - day + (day === 0 ? -6 : 1); // Adjust for Sunday
+  const diff = today.getDate() - day + (day === 0 ? -6 : 1); // Oprava pro neděli
   const monday = new Date(today.setDate(diff));
   return monday.toISOString().split("T")[0];
 }
 
 /**
- * Get restaurant name from URL (fallback if not provided)
- * @param url - Full URL
- * @returns Extracted name or domain
+ * Ziskani nazvu restaurace z URL - fallback pokud neni poskytnut
+ * @param url - Cele URL
+ * @returns Ziskany nazev nebo domena
  */
 export function extractRestaurantName(url: string): string {
   const domain = extractDomain(url);

@@ -1,5 +1,6 @@
 "use client";
 
+// Komponenta pro pridani nove restaurace
 import { useState } from "react";
 import { Plus } from "lucide-react";
 
@@ -8,10 +9,12 @@ interface AddRestaurantProps {
 }
 
 export default function AddRestaurant({ onAdded }: AddRestaurantProps) {
+  // Stav pro URL, loading a zpravy
   const [url, setUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
+  // Obsluzna funkce pri odeslani formulare
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -27,15 +30,15 @@ export default function AddRestaurant({ onAdded }: AddRestaurantProps) {
       const data = await response.json();
 
       if (!response.ok) {
-        setMessage(`❌ Chyba: ${data.error || data.message}`);
+        setMessage(`Chyba: ${data.error || data.message}`);
         return;
       }
 
-      setMessage(`✅ Restaurace přidána! (ID: ${data.restaurantId})`);
+      setMessage(`Restaurace pridana! (ID: ${data.restaurantId})`);
       setUrl("");
       onAdded?.();
     } catch (error) {
-      setMessage(`❌ Chyba: ${error}`);
+      setMessage(`Chyba: ${error}`);
     } finally {
       setLoading(false);
     }
@@ -43,7 +46,7 @@ export default function AddRestaurant({ onAdded }: AddRestaurantProps) {
 
   return (
     <div className="max-w-md mx-auto bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
-      <h2 className="font-bold text-lg mb-4">Přidat restauraci</h2>
+      <h2 className="font-bold text-lg mb-4">Pridat restauraci</h2>
       
       <form onSubmit={handleSubmit} className="space-y-3">
         <input
@@ -60,7 +63,7 @@ export default function AddRestaurant({ onAdded }: AddRestaurantProps) {
           className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-400 transition"
         >
           <Plus size={16} />
-          {loading ? "Přidávám..." : "Přidat"}
+          {loading ? "Pridavam..." : "Pridat"}
         </button>
       </form>
 

@@ -1,6 +1,7 @@
+// Scraper pro ziskavani denniho menu z webovych stranek
 import { load } from 'cheerio';
 
-// Pomocná funkce pro očištění URL
+// Normalizace domeny - odstraneni www. a ziskani hostname
 export function normalizeDomain(url: string): string {
   try {
     const parsed = new URL(url);
@@ -10,6 +11,7 @@ export function normalizeDomain(url: string): string {
   }
 }
 
+// Prevod relativniho URL na absolutni
 function toAbsoluteUrl(baseUrl: string, maybeRelative: string): string {
   try {
     return new URL(maybeRelative, baseUrl).toString();
@@ -18,6 +20,7 @@ function toAbsoluteUrl(baseUrl: string, maybeRelative: string): string {
   }
 }
 
+// Ziskani obsahu pomoci Jina Reader API - pro komplexni nebo blokovane stranky
 async function fetchViaJina(targetUrl: string): Promise<string | null> {
   try {
     const jinaUrl = `https://r.jina.ai/${targetUrl}`;
@@ -29,19 +32,21 @@ async function fetchViaJina(targetUrl: string): Promise<string | null> {
     });
     if (!response.ok) return null;
     const text = await response.text();
-    console.log(`✅ [Scraper] Jina vrátila ${text.length} znaků pro ${targetUrl}.`);
+    console.log(`Jina uspesne nactla ${text.length} znaku pro ${targetUrl}`);
     return text.substring(0, 50000);
   } catch (e: any) {
-    console.error(`❌ [Scraper] Jina selhala pro ${targetUrl}: ${e.message}`);
+    console.error(`Chyba pri Jina nacteni ${targetUrl}: ${e.message}`);
     return null;
   }
 }
 
-// 1. ZÍSKÁNÍ TEXTU (DVOJFÁZOVÉ)
+// Nacteni obsahu stranky - dvoustupnovy pristup
+// Stupen 1: Pokus o primy fetch - rychly a je-li dostupny
+// Stupen 2: Fallback na Jina Reader - pro JS-heavy/chranene stranky
 async function fetchPageContent(url: string): Promise<string | null> {
-  // FÁZE A: Klasický rychlý fetch (pro jednoduché weby)
+  // Stupen 1: Pokus o rychly primy fetch
   try {
-    console.log(`⚡ [Scraper] Zkouším rychlý fetch: ${url}`);
+    console.log(`Prubekam primy fetch: ${url}`);
     const response = await fetch(url, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -54,25 +59,25 @@ async function fetchPageContent(url: string): Promise<string | null> {
       const html = await response.text();
       const $ = load(html);
       
-      // Odstraníme balast
+      // Odstranime nepotrebne prvky
       $('script, style, nav, footer, iframe, svg, head, meta, link, form, noscript, .cookie-banner, #cookie-law-info-bar').remove();
       
       let text = $('body').text().replace(/\s+/g, ' ').trim();
       
-      // Pokud máme dostatek textu, vrátíme ho
+      // Pokud je text dostatecne dlouhy, pouzijeme ho
       if (text.length > 500) {
         return text.substring(0, 25000);
       }
     }
   } catch (e) {
-    console.warn("⚠️ Rychlý fetch selhal, jdu na hloubkový.");
+    console.warn("Primy fetch selhal, pouzivam Jinu.");
   }
 
-  // FÁZE B: Hloubkový fetch přes Jina Reader (pro složité weby / JS / blokace)
+  // Stupen 2: Jina Reader pro slozite stranky
   return await fetchViaJina(url);
 }
 
-// Pomocný rychlý fetch HTML (bez Jina) pro strukturovaný parsing
+// Pomocny primy fetch HTML - bez Jina - pro strukturovany parsing
 async function fetchPageHtml(url: string): Promise<string | null> {
   try {
     const response = await fetch(url, {
@@ -89,13 +94,13 @@ async function fetchPageHtml(url: string): Promise<string | null> {
   }
 }
 
-// Pokus o strukturovaný parsing pro weby s jasným markupem (např. usalzmannu)
+// Pokus o strukturovany parsing pro stranky s jasnym markupem (napr. usalzmannu)
 function tryParseStructuredMenu(html: string) {
   const $ = load(html);
   const hasDaily = $('.daily-menu').length > 0;
   if (!hasDaily) return null;
 
-  // Seznam dnů z tabů (indexované podle obsahu)
+  // Seznam dnu z tabu - indexovano podle obsahu
   const dayLabels: string[] = [];
   $('.daily-menu-tab__list .daily-menu-tab__item .daily-menu-tab__day').each((_, el) => {
     const day = $(el).text().trim();
@@ -116,10 +121,11 @@ function tryParseStructuredMenu(html: string) {
         if (tds.length >= 2) {
           const name = $(tds[1]).text().replace(/\s+/g, ' ').trim();
           const priceText = tds.length >= 3 ? $(tds[2]).text() : '';
-          const priceMatch = priceText.replace(/\u00a0/g, ' ').match(/(\d+)[\s]*Kč/i);
+          const priceMatch = priceText.replace(/\u00a0/g, ' ').match(/(\d+)[\s]*Kc/i);
           const price = priceMatch ? parseInt(priceMatch[1], 10) : 0;
 
-          if (section.includes('polév') || section.includes('polev')) {
+          // Rozdeleni na polevky a hlavni chody
+          if (section.includes('polev') || section.includes('polev')) {
             if (name) soups.push(name);
           } else {
             if (name) mains.push({ cislo: 0, nazev: name, popis: '', cena_bez_polevky: price || 0, cena_s_polevkou: 0 });
@@ -135,19 +141,19 @@ function tryParseStructuredMenu(html: string) {
   return { poledni_nabidka: days };
 }
 
-// Heuristika: menicka.cz iframe (např. Slunečnice)
+// Ziskavani menu z menicka.cz iframe - napr. Slunecnice
 async function extractMenickaIframeText(baseUrl: string, html: string): Promise<string | null> {
   const $ = load(html);
   
-  // Zkusit classickou iframe s menicka.cz
+  // Pokus najit iframe s menicka.cz
   let iframeSrc = $('iframe[src*="menicka.cz"]').attr('src');
   
-  // Pokud ne, zkusit data-src (lazy loading)
+  // Pokud ne, zkusit data-src - pro lazy loading
   if (!iframeSrc) {
     iframeSrc = $('iframe[data-src*="menicka.cz"]').attr('data-src');
   }
   
-  // Pokud ne, zkusit všechny iframy a hledat v src
+  // Pokud ne, zkusit vse iframy a hledat menicka.cz
   if (!iframeSrc) {
     $('iframe').each((_, el) => {
       const src = $(el).attr('src') || '';
@@ -161,7 +167,7 @@ async function extractMenickaIframeText(baseUrl: string, html: string): Promise<
   if (!iframeSrc) return null;
   const abs = toAbsoluteUrl(baseUrl, iframeSrc);
   console.log(`🔎 [Scraper] Nalezen menicka.cz iframe: ${abs}`);
-  // Menicka obsah převedeme přes Jina na text
+  // Menicka obsah prevedeme pres Jinu na text
   return await fetchViaJina(abs);
 }
 
@@ -171,16 +177,16 @@ function tryParseUpalkuExcelTable(html: string) {
   const table = $('table').first();
   if (!table || table.length === 0) return null;
 
-  // Odhad, zda jde o takový formát: hledejte klíčová slova
+  // Odhad zda jde o spravny format - hledame klicova slova
   const pageText = $('body').text().toLowerCase();
-  if (!pageText.includes('jídelní lístek')) return null;
+  if (!pageText.includes('jidelni listek')) return null;
 
   const rows = table.find('tr');
   const soups: string[] = [];
   const mains: any[] = [];
   let mode: 'none' | 'soups' | 'mains' = 'none';
   let dayName = '';
-  const czechDays = ['Pondělí','Úterý','Středa','Čtvrtek','Pátek','Sobota','Neděle'];
+  const czechDays = ['Pondeli','Utery','Streda','Ctvrtek','Patek','Sobota','Nedele'];
 
   rows.each((_, tr) => {
     const $tr = $(tr);
@@ -189,7 +195,7 @@ function tryParseUpalkuExcelTable(html: string) {
     const line = texts.join(' ').trim();
     if (!line) return;
 
-    // Zjistit den:
+    // Zjisteni dne:
     for (const d of czechDays) {
       if (line.includes(d)) {
         dayName = d;
@@ -197,11 +203,13 @@ function tryParseUpalkuExcelTable(html: string) {
       }
     }
 
-    if (/polévky/i.test(line) || /polevky/i.test(line)) {
+    // Hledame sekci s polevkami
+    if (/polevky/i.test(line) || /polevky/i.test(line)) {
       mode = 'soups';
       return;
     }
-    if (/denní nabídka/i.test(line) || /denni nabidka/i.test(line)) {
+    // Hledame sekci s denni nabidkou
+    if (/denni nabidka/i.test(line) || /denni nabidka/i.test(line)) {
       mode = 'mains';
       return;
     }
@@ -220,7 +228,7 @@ function tryParseUpalkuExcelTable(html: string) {
         const priceText = texts[2] || '';
         const priceMatch = priceText.replace(/\u00a0/g, ' ').match(/(\d+)/);
         const price = priceMatch ? parseInt(priceMatch[1], 10) : 0;
-        // Pokus o číslo jídla na začátku názvu
+        // Pokus o cislo jidla na zacatku nazvu
         let cislo = 0;
         const m = name.match(/^(\d+)\s+/);
         if (m) {
@@ -234,8 +242,8 @@ function tryParseUpalkuExcelTable(html: string) {
 
   if (soups.length === 0 && mains.length === 0) return null;
   if (!dayName) {
-    // fallback na dnešní den
-    const dayIdx = (new Date().getDay() + 6) % 7; // 0=Mon
+    // fallback na dnesni den
+    const dayIdx = (new Date().getDay() + 6) % 7; // 0=Pondeli
     dayName = czechDays[dayIdx];
   }
 
@@ -255,43 +263,43 @@ function findPdfMenuUrl(baseUrl: string, html: string): string | null {
     const text = $(a).text().toLowerCase();
     if (/denn/i.test(href) || /poledn/i.test(href) || /denn/i.test(text) || /poledn/i.test(text)) {
       best = toAbsoluteUrl(baseUrl, href);
-      return false; // break
+      return false; // ukonceni iterace
     }
-    // Otherwise keep last PDF as fallback if nothing smarter found
+    // Fallback - posledni PDF pokud nic lepsiho nenajdeme
     if (!best) best = toAbsoluteUrl(baseUrl, href);
   });
   return best;
 }
 
-// HLAVNÍ FUNKCE
+// HLAVNI FUNKCE PRO SKRAPOVANI MENU
 export async function scrapeMenuWithAI(url: string) {
-  // 0) Zkusíme rychlý strukturovaný parsing, pokud stránky mají jasný markup
+  // Stupen 0: Pokus o rychly strukturovany parsing bez AI
   const html = await fetchPageHtml(url);
   if (html) {
     const structured = tryParseStructuredMenu(html);
     if (structured && structured.poledni_nabidka?.length) {
-      console.log(`✅ [Scraper] Strukturovaný parsing úspěšný (bez AI). Dní: ${structured.poledni_nabidka.length}`);
+      console.log(`Strukturovany parsing uspesny bez AI. Pocet dnu: ${structured.poledni_nabidka.length}`);
       return structured;
     }
 
-    // 0a) Upalku-like excel tabulka
+    // Pokus o Excel/HTML tabulku formatu
     const upalku = tryParseUpalkuExcelTable(html);
     if (upalku) {
-      console.log('✅ [Scraper] Rozpoznán excel/HTML formát denní nabídky (u Pálků).');
+      console.log('Rozpoznan Excel/HTML format denni nabidky.');
       return upalku;
     }
 
-    // 0b) Menicka.cz iframe
+    // Pokus o menicka.cz iframe
     const menickaText = await extractMenickaIframeText(url, html);
     if (menickaText && menickaText.length > 100) {
-      console.log('✅ [Scraper] Nalezen menicka.cz iframe, použiji jeho obsah.');
+      console.log('Nalezen menicka.cz iframe, pouziji jeho obsah.');
       return await extractWithAI(menickaText);
     }
 
-    // 0c) PDF menu odkaz
+    // Pokus o PDF odkaz s menu
     const pdfUrl = findPdfMenuUrl(url, html);
     if (pdfUrl) {
-      console.log(`🔗 [Scraper] Nalezen PDF odkaz s menu: ${pdfUrl}`);
+      console.log(`Nalezen PDF odkaz na menu: ${pdfUrl}`);
       const pdfText = await fetchViaJina(pdfUrl);
       if (pdfText && pdfText.length > 100) {
         return await extractWithAI(pdfText);
@@ -302,15 +310,16 @@ export async function scrapeMenuWithAI(url: string) {
   const rawText = await fetchPageContent(url);
 
   if (!rawText || rawText.length < 100) {
-    console.error("❌ [Scraper] Nepodařilo se získat text stránky.");
+    console.error("Nepodařilo se získat text stranky.");
     return null;
   }
 
   return await extractWithAI(rawText);
 }
 
+// Funkce pro extrakci menu pres AI - pouziva Groq API
 async function extractWithAI(sourceText: string) {
-  console.log(`🤖 [Scraper] Posílám data do Groq AI...`);
+  console.log(`Posílam data do Groq AI...`);
   try {
     const aiResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
@@ -323,31 +332,31 @@ async function extractWithAI(sourceText: string) {
         messages: [
           {
             role: 'system',
-            content: `Jsi špičkový AI asistent pro extrakci jídelních lístků. Tvým úkolem je pochopit i špatně formátovaný text a najít v něm polední menu.
+            content: `Jsi spicovy AI asistent pro extrakci jidelniho listu. Vyzva je pochopit i spatne formatovany text a najit v nem poledni menu.
 
-Dnešní datum (pro kontext): ${new Date().toLocaleDateString('cs-CZ')}
+Dnesmni datum (pro kontext): ${new Date().toLocaleDateString('cs-CZ')}
 
-INSTRUKCE:
+POKYNY:
 1. Hledej sekce jako "Polední menu", "Denní nabídka", "Menu na týden", "Lunch menu".
-2. Pokud vidíš data (např. 22.1. nebo Pondělí), přiřaď jídla správně ke dnům.
-3. Ignoruj stálý lístek (burgery, pizzy), pokud to není v sekci denního menu.
-4. Pokud je menu v podivném formátu (tabulky rozpadlé do textu), pokus se to logicky poskládat.
-5. Důležité: Pokud jídlo nemá uvedenou cenu, nevadí, dej tam 0.
+2. Pokud vides data (napr. 22.1. nebo Pondeli), priradi jidla spravne ke dnum.
+3. Ignoruj staly listek (burgery, pizzy), pokud to neni v sekci denniho menu.
+4. Pokud je menu v podivnem formatu (tabulky rozpadlé do textu), pokus se to logicky poskladat.
+5. Dulezite: Pokud jidlo nema uvedenou cenu, nevadi, dej tam 0.
 
-VÝSTUPNÍ FORMÁT (JSON):
+VYSTUPNI FORMAT (JSON):
 {
   "poledni_nabidka": [
     {
-      "den": "Pondělí",
-      "polevky": ["Zelňačka"],
+      "den": "Pondeli",
+      "polevky": ["Zelnacka"],
       "hlavni_chody": [
-        {"cislo": 1, "nazev": "Guláš s pěti", "popis": "", "cena_bez_polevky": 150, "cena_s_polevkou": 0}
+        {"cislo": 1, "nazev": "Gulas s peti", "popis": "", "cena_bez_polevky": 150, "cena_s_polevkou": 0}
       ]
     }
   ]
 }
 
-Pokud menu nenajdeš, vrať: {"poledni_nabidka": []}`
+Pokud menu nenajdes, vrat: {"poledni_nabidka": []}`
           },
           { role: 'user', content: `Zde je obsah webu/zdroje:\n\n${sourceText}` }
         ],
@@ -358,11 +367,11 @@ Pokud menu nenajdeš, vrať: {"poledni_nabidka": []}`
     const aiData = await aiResponse.json();
 
     if (aiData.error) {
-      console.error('❌ CHYBA GROQ API:', aiData.error);
+      console.error('CHYBA Groq API:', aiData.error);
       return null;
     }
 
-    // Čištění JSONu
+    // Cisteni a extrahovani JSON
     let content = aiData.choices?.[0]?.message?.content || '';
     content = content.replace(/```json/g, '').replace(/```/g, '').trim();
 
@@ -375,14 +384,14 @@ Pokud menu nenajdeš, vrať: {"poledni_nabidka": []}`
     const parsed = JSON.parse(content);
 
     if (!parsed.poledni_nabidka || parsed.poledni_nabidka.length === 0) {
-      console.warn('⚠️ AI nenašla v textu žádné menu.');
+      console.warn('AI nenasla v textu zadne menu.');
     } else {
-      console.log(`✅ [Scraper] Menu nalezeno! Dní: ${parsed.poledni_nabidka.length}`);
+      console.log(`Menu nalezeno! Pocet dnu: ${parsed.poledni_nabidka.length}`);
     }
 
     return parsed;
   } catch (e: any) {
-    console.error(`❌ [Scraper] Chyba při zpracování: ${e.message}`);
+    console.error(`Chyba pri zpracovani: ${e.message}`);
     return null;
   }
 }
