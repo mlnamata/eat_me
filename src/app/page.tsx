@@ -165,7 +165,7 @@ export default function Home() {
       {/* Zobrazeni menu - dvousloupcova souprava na desktopu */}
       <div className="max-w-6xl mx-auto mt-8">
         <div className="flex justify-between items-center mb-4 px-2">
-            <h2 className="text-xl font-bold text-gray-800">Moje menu ({menus.length})</h2>
+            <h2 className="text-xl font-bold text-gray-800">Moje menu </h2>
             <div className="flex gap-2">
               <button 
                 type="button" 

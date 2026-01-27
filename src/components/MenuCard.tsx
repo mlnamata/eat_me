@@ -56,12 +56,7 @@ export default function MenuCard({ restaurantName, menuData, fullUrl, onRemove }
     }
   }, [menuData]);
 
-  useEffect(() => {
-    const selectedDay = menuData.poledni_nabidka?.[selectedDayIndex];
-    if (selectedDay && selectedDay.hlavni_chody?.length > 8 && !isOpen) {
-      setIsOpen(true);
-    }
-  }, [menuData, selectedDayIndex, isOpen]);
+
 
   const renderDishes = (day: DailyMenu) => (
     <div className="space-y-3">
@@ -185,21 +180,7 @@ export default function MenuCard({ restaurantName, menuData, fullUrl, onRemove }
               {todayMenu && menuData.poledni_nabidka[selectedDayIndex]?.den === todayMenu.den && " (Dnes)"}
             </h4>
 
-            {(() => {
-              const day = menuData.poledni_nabidka[selectedDayIndex];
-              const tooMany = day?.hlavni_chody?.length > 8;
-              const visible = tooMany ? { ...day, hlavni_chody: day.hlavni_chody.slice(0, 8) } : day;
-              return (
-                <>
-                  {visible && renderDishes(visible)}
-                  {tooMany && (
-                    <div className="mt-2 text-xs text-gray-500 bg-gray-50 border border-gray-200 rounded px-2 py-1">
-                      Zobrazuji prvních 8 jídel. Karta se otevre, protoze menu je dlouhé.
-                    </div>
-                  )}
-                </>
-              );
-            })()}
+            {renderDishes(menuData.poledni_nabidka[selectedDayIndex])}
           </div>
         )}
 
