@@ -192,7 +192,6 @@ export default function Home() {
               </button>
             </div>
         </div>
-        <p className="text-sm text-gray-500 px-2 mb-4">{isDragUnlocked ? "✓ Přesouvání odemčeno - táhni karty pro změnu pořadí" : "Karty můžeš přesouvat po kliknutí na ikonu zámku vedle tlačítka obnovit"}</p>
 
         {loading ? (
            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
